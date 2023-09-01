@@ -3,27 +3,26 @@ import * as fs from "fs";
 const POSTING_ENTRY_REGEX = /^(\d{4}\/\d{1,2}\/\d{1,2})\s+([\w\s]+)/;
 const TRANSACTION_MATCH_REGEX =
   /^\s+([\w\s\w:]+)\s+(-?[$]?[\d,.]+)\s*([A-Z]{2,3})?/;
-const POSTING_MATCH_REGEX =
+const COMPLEMENTARY_MATCH_REGEX =
   /^\s+([\w\s\w:]+)\s*(-?[$]?[\d,.]+)?\s*([A-Z]{2,3})?/;
 const PRICES_DB_REGEX =
   /^P\s+\d{4}\/\d{1,2}\/\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+([A-Z]+)\s+[$]([\d.,]+)/;
 
 export function parseFileContent(file) {
-  try {
-    const content = fs.readFileSync(file, `utf-8`);
-    return content;
-  } catch (err) {
-    console.error(`Error reading file: ${err.message}`);
-    process.exit(0);
-  }
+  const content = fs.readFileSync(file, `utf-8`);
+  return content;
 }
 
 export function getTransactions(file, transactions = []) {
   const fileContent = parseFileContent(file);
-  const lines = fileContent.split(`\n`);
-  let transactionDate = ``;
-  let transactionDescription = ``;
 
+  //separate file contents by line
+  const lines = fileContent.split(`\n`);
+
+  let transactionDate = "";
+  let transactionDescription = "";
+
+  //check line by line against the regex for different expected structures
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
@@ -36,12 +35,12 @@ export function getTransactions(file, transactions = []) {
     let transactionAmount = 0;
     const transactionMatch = line.match(TRANSACTION_MATCH_REGEX);
     if (transactionMatch) {
-      transactionAmount = transactionMatch[2].replace(`$`, ``) * 1;
+      transactionAmount = transactionMatch[2].replace("$", "") * 1;
 
       transactions.push({
         account: transactionMatch[1].trim(),
         amount: transactionAmount,
-        currency: transactionMatch[3] ? transactionMatch[3] : `$`,
+        currency: transactionMatch[3] ? transactionMatch[3] : "$",
         date: new Date(transactionDate),
         description: transactionDescription,
       });
@@ -55,7 +54,7 @@ export function getTransactions(file, transactions = []) {
       transactions.push({
         account: complementaryTransaction[1].trim(),
         amount: -transactionAmount,
-        currency: transactionMatch[3] ? transactionMatch[3] : `$`,
+        currency: transactionMatch[3] ? transactionMatch[3] : "$",
         date: new Date(transactionDate),
         description: transactionDescription,
       });
@@ -76,10 +75,12 @@ export function getPostings(file, postings = []) {
       let transactionDescription = postingEntryMatch[2];
 
       const toAccountPostingMatch = lines[i + 1].match(TRANSACTION_MATCH_REGEX);
-      const fromAccountPostingMatch = lines[i + 2].match(POSTING_MATCH_REGEX);
-      let transactionAmount = toAccountPostingMatch[2].replace(`$`, ``) * 1;
+      const fromAccountPostingMatch = lines[i + 2].match(
+        COMPLEMENTARY_MATCH_REGEX
+      );
+      let transactionAmount = toAccountPostingMatch[2].replace("$", "") * 1;
       let amountComplement = fromAccountPostingMatch[2]
-        ? fromAccountPostingMatch[2].replace(`$`, ``)
+        ? fromAccountPostingMatch[2].replace("$", "")
         : -transactionAmount;
 
       postings.push({
@@ -87,10 +88,15 @@ export function getPostings(file, postings = []) {
         fromAccount: fromAccountPostingMatch[1].trim(),
         amount: transactionAmount,
         fromAmount: amountComplement,
-        currency: toAccountPostingMatch[3] ? toAccountPostingMatch[3] : `$`,
-        fromCurrency: fromAccountPostingMatch[3]
-          ? fromAccountPostingMatch[3]
-          : `$`,
+        currency: toAccountPostingMatch[3] ? toAccountPostingMatch[3] : "$",
+        fromCurrency:
+          fromAccountPostingMatch[2] && !fromAccountPostingMatch[3]
+            ? "$"
+            : !fromAccountPostingMatch[2] && !fromAccountPostingMatch[3]
+            ? toAccountPostingMatch[3]
+              ? toAccountPostingMatch[3]
+              : "$"
+            : "$",
         date: new Date(transactionDate),
         description: transactionDescription,
         hasFrom: fromAccountPostingMatch[3] ? true : false,
@@ -103,7 +109,7 @@ export function getPostings(file, postings = []) {
 
 export function getPrices() {
   const prices = {};
-  const content = parseFileContent(`data/prices_db`);
+  const content = parseFileContent("data/prices_db");
   const lines = content.split(`\n`);
 
   lines.forEach((line) => {
@@ -114,7 +120,7 @@ export function getPrices() {
 
     const baseMatch = line.match(/^D\s+[$]([\d.,]+)/);
     if (baseMatch) {
-      prices[`$`] = baseMatch[1].replace(`,`, ``) * 1;
+      prices["$"] = baseMatch[1].replace(",", "") * 1;
     }
   });
 

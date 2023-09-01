@@ -135,20 +135,15 @@ export default function registerCommand(argv, data) {
       },
     ]);
 
-    paypalAcct =
-      allPostings[i].fromCurrency === "$" ? fromPaypalAcct : paypalAcct;
-    walletBTC =
-      allPostings[i].fromCurrency === "BTC" ? fromWalletBTC : walletBTC;
-    console.log(
-      "here",
-      allPostings[i].description,
-      "acct " + allPostings[i].amount + " " + allPostings[i].currency,
-      "from " + allPostings[i].fromAmount + " " + allPostings[i].fromCurrency,
-      "$",
-      paypalAcct,
-      "BTC",
-      walletBTC
-    );
+    if (allPostings[i].fromCurrency === "$") {
+      paypalAcct =
+        allPostings[i].fromCurrency === "$" ? fromPaypalAcct : paypalAcct;
+      fromWalletBTC = walletBTC;
+    } else {
+      walletBTC =
+        allPostings[i].fromCurrency === "$" ? fromWalletBTC : walletBTC;
+      fromPaypalAcct = paypalAcct;
+    }
 
     table.push([
       "",
@@ -169,12 +164,12 @@ export default function registerCommand(argv, data) {
                 )
             : allPostings[i].fromAmount >= 0
             ? chalk.white(
-                allPostings[i].fromAmount.toFixed(1) +
+                Number(allPostings[i].fromAmount).toFixed(1) +
                   " " +
                   allPostings[i].fromCurrency
               )
             : chalk.red(
-                allPostings[i].fromAmount.toFixed(1) +
+                Number(allPostings[i].fromAmount).toFixed(1) +
                   " " +
                   allPostings[i].fromCurrency
               ),
